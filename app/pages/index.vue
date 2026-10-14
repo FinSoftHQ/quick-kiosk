@@ -1,76 +1,53 @@
 <template>
-  <div>
-    <UPageHero
-      title="Nuxt Starter Template"
-      description="A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours."
-      :links="[{
-        label: 'Get started',
-        to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-        target: '_blank',
-        trailingIcon: 'i-lucide-arrow-right',
-        size: 'xl'
-      }, {
-        label: 'Use this template',
-        to: 'https://github.com/nuxt-ui-templates/starter',
-        target: '_blank',
-        icon: 'i-simple-icons-github',
-        size: 'xl',
-        color: 'neutral',
-        variant: 'subtle'
-      }]"
-    />
+  <div class="min-h-dvh flex flex-col items-center justify-center bg-gradient-to-b from-coop-600 via-coop-700 to-coop-900 text-white p-8 select-none">
+    <div class="rounded-full bg-white p-5 shadow-2xl ring-8 ring-white/15">
+      <img
+        src="/images/coop-logo.png"
+        alt="ตราสหกรณ์ออมทรัพย์โรงพยาบาลศรีสะเกษ"
+        class="size-32 md:size-40"
+      >
+    </div>
 
-    <UPageSection
-      id="features"
-      title="Everything you need to build modern Nuxt apps"
-      description="Start with a solid foundation. This template includes all the essentials for building production-ready applications with Nuxt UI's powerful component system."
-      :features="[{
-        icon: 'i-lucide-rocket',
-        title: 'Production-ready from day one',
-        description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and all the best practices. Focus on building features, not setting up tooling.'
-      }, {
-        icon: 'i-lucide-palette',
-        title: 'Beautiful by default',
-        description: 'Leveraging Nuxt UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.'
-      }, {
-        icon: 'i-lucide-zap',
-        title: 'Lightning fast',
-        description: 'Optimized for performance with SSR/SSG support, automatic code splitting, and edge-ready deployment. Your users will love the speed.'
-      }, {
-        icon: 'i-lucide-blocks',
-        title: '100+ components included',
-        description: 'Access Nuxt UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.'
-      }, {
-        icon: 'i-lucide-code-2',
-        title: 'Developer experience first',
-        description: 'Auto-imports, hot module replacement, and TypeScript support. Write less boilerplate and ship more features.'
-      }, {
-        icon: 'i-lucide-shield-check',
-        title: 'Built for scale',
-        description: 'Enterprise-ready architecture with proper error handling, SEO optimization, and security best practices built-in.'
-      }]"
-    />
+    <p class="mt-8 text-xl md:text-2xl text-coop-100">
+      ยินดีต้อนรับสู่
+    </p>
 
-    <UPageSection>
-      <UPageCTA
-        title="Ready to build your next Nuxt app?"
-        description="Join thousands of developers building with Nuxt and Nuxt UI. Get this template and start shipping today."
-        variant="subtle"
-        :links="[{
-          label: 'Start building',
-          to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-          target: '_blank',
-          trailingIcon: 'i-lucide-arrow-right',
-          color: 'neutral'
-        }, {
-          label: 'View on GitHub',
-          to: 'https://github.com/nuxt-ui-templates/starter',
-          target: '_blank',
-          icon: 'i-simple-icons-github',
-          color: 'neutral',
-          variant: 'outline'
-        }]"
-      />
-    </UPageSection>
+    <h1 class="mt-2 text-center text-3xl md:text-5xl font-bold leading-snug">
+      สหกรณ์ออมทรัพย์โรงพยาบาลศรีสะเกษ จำกัด
+    </h1>
+
+    <div class="mt-10 w-full max-w-md rounded-2xl bg-white/10 backdrop-blur px-6 py-5 space-y-3 text-coop-50">
+      <div class="flex items-center gap-3 text-base md:text-lg">
+        <UIcon
+          name="i-lucide-map-pin"
+          class="size-6 shrink-0"
+        />
+        <p>0859 ถ.กสิกรรม ต.เมืองใต้ อ.เมือง จ.ศรีสะเกษ 33000</p>
+      </div>
+
+      <div class="flex items-center gap-3 text-base md:text-lg">
+        <UIcon
+          name="i-lucide-phone"
+          class="size-6 shrink-0"
+        />
+        <p>045-611394</p>
+      </div>
+
+      <div class="flex items-center gap-3 text-base md:text-lg">
+        <UIcon
+          name="i-lucide-message-circle"
+          class="size-6 shrink-0"
+        />
+        <p>Line ID: @917mwsfl</p>
+      </div>
+
+      <div class="flex items-center gap-3 text-base md:text-lg">
+        <UIcon
+          name="i-lucide-globe"
+          class="size-6 shrink-0"
+        />
+        <p>www.saving-sskh.com</p>
+      </div>
+    </div>
   </div>
 </template>
