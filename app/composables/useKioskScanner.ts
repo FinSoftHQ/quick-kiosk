@@ -6,11 +6,11 @@ import { ref, onUnmounted } from 'vue'
  * fallback scanning library. When unsupported the page hides the scan panel
  * and shows the on-screen keypad only.
  *
- * Accepted payloads: `SSKH:<memberCode>` (QR created by the admin page) or a
- * bare 4–8 digit code.
+ * Accepted payloads: `$SSKH:<memberCode>` (kiosk QR card, also typed by the
+ * USB wedge) or a bare 3–8 digit code.
  */
 
-export const QR_PAYLOAD_RE = /^SSKH:(\d{3,8})$/
+export const QR_PAYLOAD_RE = /^\$SSKH:(\d{3,8})$/
 export const BARE_CODE_RE = /^(\d{3,8})$/
 
 export function parseKioskPayload(raw: string): string | null {

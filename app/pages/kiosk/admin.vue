@@ -102,7 +102,7 @@ async function openQr() {
   try {
     const member = await api.get<{ full_name: string }>(`/api/v-latest/kiosk/lookup?code=${encodeURIComponent(code)}`)
     qrName.value = member.full_name
-    qrDataUrl.value = await QRCode.toDataURL(`SSKH:${code}`, { width: 320, margin: 2 })
+    qrDataUrl.value = await QRCode.toDataURL(`$SSKH:${code}`, { width: 320, margin: 2 })
     qrOpen.value = true
   } catch (e) {
     qrError.value = (e as { data?: { error?: string } })?.data?.error || 'ไม่พบรหัสสมาชิกนี้'
@@ -270,7 +270,7 @@ function printQr() {
           {{ qrName }} ({{ qrCode }})
         </p>
         <p class="qr-payload mono">
-          SSKH:{{ qrCode }}
+          $SSKH:{{ qrCode }}
         </p>
         <div class="modal-actions">
           <button
