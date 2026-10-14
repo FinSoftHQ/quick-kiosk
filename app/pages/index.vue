@@ -2,7 +2,7 @@
 /* eslint-disable better-tailwindcss/no-unknown-classes -- scoped plain CSS ported from reference kiosk design; classes are not Tailwind utilities */
 import { onUnmounted, ref } from 'vue'
 import { useApiFetch } from '~/composables/useApiFetch'
-import { useKioskScanner } from '~/composables/useKioskScanner'
+import { parseKioskPayload, useKioskScanner } from '~/composables/useKioskScanner'
 import QRCode from 'qrcode'
 
 definePageMeta({ layout: false })
@@ -91,19 +91,8 @@ async function initScanner() {
 // ── USB scanner (keyboard wedge): เครื่องสแกนพิมพ์ payload + Enter เอง ──
 const scanBuffer = ref('')
 
-/** รองรับ payload "SSKH-QR1:{memberCode}:{txnRef}" และเลขสมาชิกล้วน */
-function extractMemberCode(raw: string): string | null {
-  const text = raw.trim()
-  if (text.startsWith('SSKH-QR1:')) {
-    const memberCode = text.split(':')[1] ?? ''
-    return /^\d{3,8}$/.test(memberCode) ? memberCode : null
-  }
-  const digits = text.replace(/\D/g, '')
-  return /^\d{3,8}$/.test(digits) ? digits : null
-}
-
 function submitScanBuffer() {
-  const code = extractMemberCode(scanBuffer.value)
+  const code = parseKioskPayload(scanBuffer.value)
   scanBuffer.value = ''
   if (!code) return
   void lookupAndVerify(code, 'qr')
