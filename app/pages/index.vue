@@ -115,6 +115,11 @@ function showVerify(memberCode: string) {
   stopScanner()
 }
 
+function publishConfirmation(memberCode: string) {
+  $fetch('/api/ably/publish-confirmation', { method: 'POST', body: { member_code: memberCode } })
+    .catch(e => console.warn('[kiosk] confirmation publish failed', e))
+}
+
 function confirmMember() {
   if (!verified.value) return
   sentSession.value = {
@@ -127,6 +132,7 @@ function confirmMember() {
   }
   step.value = 'sent'
   startCountdown()
+  publishConfirmation(verified.value.member_code)
 }
 
 const clock = ref('')
