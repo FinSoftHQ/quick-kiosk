@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /* eslint-disable better-tailwindcss/no-unknown-classes -- scoped plain CSS ported from reference kiosk design; classes are not Tailwind utilities */
 import { onUnmounted, ref } from 'vue'
+import { useApiFetch } from '~/composables/useApiFetch'
 import { parseKioskPayload, useKioskScanner } from '~/composables/useKioskScanner'
+import QRCode from 'qrcode'
 
 definePageMeta({ layout: false })
 
@@ -9,9 +11,13 @@ useHead({
   title: 'SSKH Kiosk — ยืนยันยอดหุ้น-หนี้'
 })
 
+const api = useApiFetch()
+
 type Step = 'idle' | 'verify' | 'sent'
 
 const step = ref<Step>('idle')
+const lookupError = ref('')
+const submitting = ref(false)
 
 interface LookupMember {
   member_code: string
@@ -32,6 +38,7 @@ interface SessionDto {
 }
 
 const sentSession = ref<SessionDto | null>(null)
+const qrDataUrl = ref('')
 
 // ── countdown on the sent screen ──
 const COUNTDOWN_SECONDS = 15
@@ -59,13 +66,15 @@ function resetToIdle() {
   step.value = 'idle'
   verified.value = null
   sentSession.value = null
+  qrDataUrl.value = ''
   scanBuffer.value = ''
+  lookupError.value = ''
 }
 
 // ── scanner ──
-function handlePayload(memberCode: string) {
-  if (step.value !== 'idle') return
-  showVerify(memberCode)
+async function handlePayload(memberCode: string) {
+  if (step.value !== 'idle' || submitting.value) return
+  await lookupAndVerify(memberCode, 'qr')
 }
 
 const { supported: scannerSupported, scanning, error: cameraError, start: startScanner, stop: stopScanner }
@@ -86,15 +95,16 @@ function submitScanBuffer() {
   const code = parseKioskPayload(scanBuffer.value)
   scanBuffer.value = ''
   if (!code) return
-  showVerify(code)
+  void lookupAndVerify(code, 'qr')
 }
 
 function onScannerKey(e: KeyboardEvent) {
-  if (step.value !== 'idle') return
+  if (step.value !== 'idle' || submitting.value) return
   if (e.key === 'Enter') {
     e.preventDefault()
     submitScanBuffer()
   } else if (e.key.length === 1 && scanBuffer.value.length < 200) {
+    lookupError.value = ''
     scanBuffer.value += e.key
   } else if (e.key === 'Backspace') {
     scanBuffer.value = scanBuffer.value.slice(0, -1)
@@ -104,15 +114,21 @@ function onScannerKey(e: KeyboardEvent) {
 }
 
 // ── flow ──
-function showVerify(memberCode: string) {
-  verified.value = {
-    member_code: memberCode,
-    full_name: 'ทดสอบ สมาชิกทดสอบ',
-    section_name: 'การเงิน',
-    member_status: 'ปกติ'
+async function lookupAndVerify(code: string, _source: 'qr' | 'manual') {
+  lookupError.value = ''
+  submitting.value = true
+  try {
+    const member = await api.get<LookupMember>(`/api/v-latest/kiosk/lookup?code=${encodeURIComponent(code)}`)
+    verified.value = member
+    step.value = 'verify'
+    stopScanner()
+  } catch (e) {
+    const message = (e as { data?: { error?: string } })?.data?.error
+    lookupError.value = message || 'ไม่พบรหัสสมาชิกนี้'
+    scanBuffer.value = ''
+  } finally {
+    submitting.value = false
   }
-  step.value = 'verify'
-  stopScanner()
 }
 
 function publishConfirmation(memberCode: string) {
@@ -120,19 +136,28 @@ function publishConfirmation(memberCode: string) {
     .catch(e => console.warn('[kiosk] confirmation publish failed', e))
 }
 
-function confirmMember() {
-  if (!verified.value) return
-  sentSession.value = {
-    token: 'mock',
-    confirm_path: '',
-    member_name: verified.value.full_name,
-    member_code: verified.value.member_code,
-    confirm_url: '',
-    line_delivered: true
+async function sendToLine() {
+  if (!verified.value || submitting.value) return
+  submitting.value = true
+  try {
+    const session = await api.post<SessionDto>('/api/v-latest/kiosk/sessions', {
+      memberCode: verified.value.member_code,
+      source: 'qr'
+    })
+    sentSession.value = session
+    qrDataUrl.value = session.line_delivered
+      ? ''
+      : await QRCode.toDataURL(session.confirm_url, { width: 300, margin: 1 })
+    step.value = 'sent'
+    startCountdown()
+    publishConfirmation(verified.value.member_code)
+  } catch (e) {
+    const message = (e as { data?: { error?: string } })?.data?.error
+    lookupError.value = message || 'ส่งยอดไม่สำเร็จ กรุณาลองใหม่'
+    step.value = 'idle'
+  } finally {
+    submitting.value = false
   }
-  step.value = 'sent'
-  startCountdown()
-  publishConfirmation(verified.value.member_code)
 }
 
 const clock = ref('')
@@ -502,6 +527,12 @@ onUnmounted(() => {
               ยื่น <b>QR Code</b> ไปที่กล้องบริเวณขอบด้านบนของเครื่อง<br>ระบบจะสแกนให้อัตโนมัติ
             </p>
             <p
+              v-if="lookupError"
+              class="lookup-err"
+            >
+              {{ lookupError }}
+            </p>
+            <p
               v-if="cameraError"
               class="cam-err"
             >
@@ -634,7 +665,8 @@ onUnmounted(() => {
           </button>
           <button
             class="btn btn-primary"
-            @click="confirmMember"
+            :disabled="submitting"
+            @click="sendToLine"
           >
             ถูกต้อง ส่งยอดเข้า LINE
           </button>
@@ -694,7 +726,7 @@ onUnmounted(() => {
           </p>
 
           <div
-            v-if="sentSession.line_delivered"
+            v-if="!qrDataUrl"
             class="journey"
           >
             <div class="jr">
@@ -708,6 +740,20 @@ onUnmounted(() => {
             <div class="jr hot">
               <span class="n">๓</span>กดยืนยัน / แจ้งปัญหา
             </div>
+          </div>
+
+          <div
+            v-if="qrDataUrl"
+            class="qr-fallback"
+          >
+            <img
+              class="qr-img"
+              :src="qrDataUrl"
+              alt="QR เปิดหน้ายืนยันยอดหุ้น-หนี้"
+            >
+            <p class="qr-hint">
+              สแกน QR นี้ด้วยกล้องมือถือของท่าน<br>เพื่อเปิดหน้ายืนยันยอดหุ้น–หนี้ แล้วกดยืนยัน / แจ้งปัญหา
+            </p>
           </div>
 
           <p class="calm">
@@ -848,6 +894,7 @@ h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.32
 .btn-ghost{background:transparent;color:#3E5876;border:1px solid #DFE6EE}
 .btn-ghost:hover{background:#fff;border-color:#CBD6E2;color:#0A2540}
 /* scanner input */
+.lookup-err{margin-top:12px;color:#B42318;font-weight:600;font-size:clamp(13px,1.9vmin,16px)}
 /* verify / sent cards */
 .screen-verify{align-items:center}
 .screen-verify .vcard{margin:auto 0}
@@ -906,6 +953,9 @@ h2{font-weight:600;font-size:clamp(26px,5.4vmin,46px);letter-spacing:-.01em;marg
 .jr.hot{border-color:#E0D3B6;background:linear-gradient(180deg,#FDFBF6,#F9F3E7);color:#7A5F2E;font-weight:600}
 .jr.hot .n{background:#B08D4F;border-color:#B08D4F;color:#fff}
 .arrow{color:#B9C6D4}
+.qr-fallback{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:6px}
+.qr-img{width:clamp(180px,26vmin,240px);height:auto;background:#fff;border:10px solid #fff;border-radius:16px;box-shadow:0 18px 44px -18px rgba(10,37,64,.4)}
+.qr-hint{font-size:clamp(13px,1.9vmin,15px);color:#3E5876;text-align:center;line-height:1.7}
 .calm{margin-top:clamp(16px,3.4vmin,28px);font-size:clamp(12px,1.9vmin,15.5px);color:#7E93AB}
 .track{width:min(320px,74%);height:3px;border-radius:3px;background:#DFE6EE;overflow:hidden;
   margin:clamp(18px,3.8vmin,32px) auto 0}
