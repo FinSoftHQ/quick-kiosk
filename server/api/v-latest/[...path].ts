@@ -11,6 +11,11 @@ export default defineEventHandler(async (event) => {
       || (process.env.API_KEY ?? '').trim()
       || ''
 
+  const apiSecret
+    = ((config.apiSecret as string | undefined) ?? '').trim()
+      || (process.env.API_SECRET ?? '').trim()
+      || ''
+
   if (!apiUpstreamBaseUrl || apiUpstreamBaseUrl.trim() === '') {
     throw createError({
       statusCode: 500,
@@ -22,6 +27,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 500,
       statusMessage: 'API_KEY is not configured'
+    })
+  }
+
+  if (!apiSecret || apiSecret.trim() === '') {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'API_SECRET is not configured'
     })
   }
 
@@ -42,12 +54,21 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const clientApiSecret = getRequestHeader(event, 'x-api-secret')
+  if (clientApiSecret !== undefined) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Client-provided API secret is not accepted'
+    })
+  }
+
   const requestUrl = getRequestURL(event)
   const target = new URL(requestUrl.pathname + requestUrl.search, apiUpstreamBaseUrl).toString()
 
   return proxyRequest(event, target, {
     headers: {
-      'x-api-key': apiKey
+      'x-api-key': apiKey,
+      'x-api-secret': apiSecret
     }
   })
 })
