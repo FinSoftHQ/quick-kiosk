@@ -13,7 +13,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     apiKey: '',
-    apiUpstreamBaseUrl: 'http://localhost:3003'
+    apiUpstreamBaseUrl: 'http://localhost:3003',
+    ablyApiKey: ''
   },
 
   routeRules: {
